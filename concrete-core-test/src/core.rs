@@ -1,5 +1,4 @@
 use crate::{REPETITIONS, SAMPLE_SIZE};
-
 use concrete_core::prelude::*;
 use concrete_core_fixture::fixture::*;
 use concrete_core_fixture::generation::{Maker, Precision32, Precision64};
@@ -90,5 +89,7 @@ test! {
     (PlaintextRetrievalFixture, (Plaintext)),
     (PlaintextVectorDiscardingRetrievalFixture, (PlaintextVector)),
     (PlaintextVectorCreationFixture, (PlaintextVector)),
-    (PlaintextVectorRetrievalFixture, (PlaintextVector))
+    (PlaintextVectorRetrievalFixture, (PlaintextVector)),
+    (GlweCiphertextGgswCiphertextExternalProductFixture, (GlweCiphertext, FourierGgswCiphertext, GlweCiphertext)),
+    (GlweCiphertextGgswCiphertextDiscardingExternalProductFixture, (GlweCiphertext, FourierGgswCiphertext, GlweCiphertext))
 }
