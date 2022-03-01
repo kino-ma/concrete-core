@@ -214,6 +214,9 @@ pub use cleartext_vector_creation::*;
 mod glwe_ciphertext_trivial_decryption;
 pub use glwe_ciphertext_trivial_decryption::*;
 
+mod glwe_ciphertext_vector_encryption;
+pub use glwe_ciphertext_vector_encryption::*;
+
 mod lwe_ciphertext_encryption;
 pub use lwe_ciphertext_encryption::*;
 
