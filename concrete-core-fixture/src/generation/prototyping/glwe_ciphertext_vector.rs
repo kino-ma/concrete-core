@@ -6,7 +6,7 @@ use crate::generation::prototyping::glwe_secret_key::PrototypesGlweSecretKey;
 use crate::generation::prototyping::plaintext_vector::PrototypesPlaintextVector;
 use crate::generation::{IntegerPrecision, Maker, Precision32, Precision64};
 use concrete_commons::dispersion::Variance;
-use concrete_commons::parameters::{GlweCiphertextCount, GlweSize, PlaintextCount};
+use concrete_commons::parameters::{GlweCiphertextCount, GlweSize, PolynomialSize};
 use concrete_core::prelude::markers::{BinaryKeyDistribution, KeyDistributionMarker};
 use concrete_core::prelude::{
     GlweCiphertextVectorDecryptionEngine, GlweCiphertextVectorEncryptionEngine,
@@ -29,7 +29,7 @@ pub trait PrototypesGlweCiphertextVector<
         &mut self,
         glwe_size: GlweSize,
         glwe_ciphertext_count: GlweCiphertextCount,
-        plaintext_count: PlaintextCount,
+        glwe_polynomial_size: PolynomialSize,
     ) -> Self::GlweCiphertextVectorProto;
     fn trivially_encrypt_plaintext_vector_to_glwe_ciphertext_vector(
         &mut self,
@@ -64,11 +64,11 @@ impl PrototypesGlweCiphertextVector<Precision32, BinaryKeyDistribution> for Make
         &mut self,
         glwe_size: GlweSize,
         glwe_ciphertext_count: GlweCiphertextCount,
-        plaintext_count: PlaintextCount,
+        glwe_poly_size: PolynomialSize,
     ) -> Self::GlweCiphertextVectorProto {
         let plaintext_vector = self
             .core_engine
-            .create_plaintext_vector(&vec![0u32; plaintext_count.0])
+            .create_plaintext_vector(&vec![0u32; glwe_poly_size.0 * glwe_ciphertext_count.0])
             .unwrap();
         ProtoBinaryGlweCiphertextVector32(
             self.core_engine
@@ -142,11 +142,11 @@ impl PrototypesGlweCiphertextVector<Precision64, BinaryKeyDistribution> for Make
         &mut self,
         glwe_size: GlweSize,
         glwe_ciphertext_count: GlweCiphertextCount,
-        plaintext_count: PlaintextCount,
+        glwe_poly_size: PolynomialSize,
     ) -> Self::GlweCiphertextVectorProto {
         let plaintext_vector = self
             .core_engine
-            .create_plaintext_vector(&vec![0u64; plaintext_count.0])
+            .create_plaintext_vector(&vec![0u64; glwe_ciphertext_count.0 * glwe_poly_size.0])
             .unwrap();
         ProtoBinaryGlweCiphertextVector64(
             self.core_engine
