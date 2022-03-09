@@ -24,7 +24,6 @@ impl<EngineError: std::error::Error> GlweSecretKeyCreationError<EngineError> {
         if polynomial_size.0 == 0 {
             return Err(Self::NullPolynomialSize);
         }
-
         if polynomial_size.0 == 1 {
             return Err(Self::SizeOnePolynomial);
         }
