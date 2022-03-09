@@ -287,3 +287,6 @@ pub use plaintext_vector_discarding_retrieval::*;
 
 mod lwe_ciphertext_discarding_bootstrap_1;
 pub use lwe_ciphertext_discarding_bootstrap_1::*;
+
+mod lwe_ciphertext_discarding_bootstrap_2;
+pub use lwe_ciphertext_discarding_bootstrap_2::*;
