@@ -309,3 +309,6 @@ pub use plaintext_vector_discarding_retrieval::*;
 
 mod plaintext_vector_creation;
 pub use plaintext_vector_creation::*;
+
+mod lwe_ciphertext_discarding_extraction;
+pub use lwe_ciphertext_discarding_extraction::*;
