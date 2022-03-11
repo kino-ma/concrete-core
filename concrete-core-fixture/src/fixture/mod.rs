@@ -229,6 +229,9 @@ pub use glwe_ciphertext_encryption::*;
 mod glwe_ciphertext_decryption;
 pub use glwe_ciphertext_decryption::*;
 
+mod glwe_secret_key_creation;
+pub use glwe_secret_key_creation::*;
+
 mod glwe_ciphertext_discarding_decryption;
 pub use glwe_ciphertext_discarding_decryption::*;
 
