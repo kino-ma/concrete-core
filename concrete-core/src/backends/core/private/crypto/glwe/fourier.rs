@@ -300,18 +300,18 @@ impl<Cont, Scalar: UnsignedTorus> FourierGlweCiphertext<Cont, Scalar> {
             self.glwe_size()
         );
 
+
+        let k = self.glwe_size().0;
+
         // create an output FourierGLWECiphertext of the correct size
         let mut output = FourierGlweCiphertext::allocate(
             Complex64::new(0., 0.),
             self.poly_size,
             GlweSize(
-                (1 / 2)
-                    * self.poly_size.0
-                    * self.glwe_size().to_glwe_dimension().0
-                    * (3 + self.poly_size.0 * self.glwe_size().to_glwe_dimension().0),
+                    k + k * (k-1)/2 + k ,
             ),
         );
-
+        println!("{}", output.as_tensor().len());
         // TODO: figure out how to represent the division/multiplication by the correct scaling
         // factor
         let iter_glwe_1 = self.polynomial_iter();
@@ -319,36 +319,35 @@ impl<Cont, Scalar: UnsignedTorus> FourierGlweCiphertext<Cont, Scalar> {
             let mut iter_output = output.polynomial_iter_mut();
             // Here the output contains all the multiplied terms
             // in the order defined by the loops
-            let mut counter_1 = 0;
-            let k = self.glwe_size().0;
-
             // 1. Get the T_i = A1i * A2i terms
             for (i, polynomial1) in iter_glwe_1.enumerate() {
                 // create an iterator iter_glwe_2 (mutable)
                 let iter_glwe_2 = glwe.polynomial_iter();
                 // consumes the iterator object with enumerate()
                 for (j, polynomial2) in iter_glwe_2.enumerate() {
-                    println!("Hello!");
                     let mut iter_glwe_1_ = self.polynomial_iter();
                     let mut iter_glwe_2_ = glwe.polynomial_iter();
                     if i == j {
-                        let mut output_poly = iter_output.next().unwrap();
+                        let mut output_poly1 = iter_output.next().unwrap();
                         // Put A1i * A2i into the output
-                        output_poly.update_with_multiply_accumulate(&polynomial1, &polynomial2);
+                        // T_i
+                        output_poly1.update_with_multiply_accumulate(&polynomial1, &polynomial2);
                         // Put A1i * B2 + B1 * A2i into the output
                         // create new iterators for glwe_1 and glwe_2
-                        output_poly.update_with_two_multiply_accumulate(
+                        // A_i'
+                        let mut output_poly2 = iter_output.next().unwrap();
+                        // (T_0, A_0', R_ij, ...., T_1, A_1', .... )
+                        output_poly2.update_with_two_multiply_accumulate(
                             &polynomial1,
                             // TODO: make sure that this index is correct, should be [-1]
                             &iter_glwe_2_
-                                .nth(polynomial1.polynomial_size().0 - 1)
+                                .next()
                                 .unwrap(),
                             &iter_glwe_1_
-                                .nth(polynomial1.polynomial_size().0 - 1)
+                                .next()
                                 .unwrap(),
                             &polynomial2,
                         );
-                        counter_1 += 1;
                     } else {
                         // else condition means i != j
                         if j < i {
@@ -362,9 +361,6 @@ impl<Cont, Scalar: UnsignedTorus> FourierGlweCiphertext<Cont, Scalar> {
                             )
                         }
                     }
-                }
-                if counter_1 > k {
-                    break;
                 }
             }
         }
