@@ -135,6 +135,7 @@ mod glwe_ciphertext_vector_trivial_encryption;
 mod glwe_ciphertext_vector_zero_encryption;
 mod glwe_ciphertext_zero_encryption;
 mod glwe_secret_key_creation;
+mod glwe_secret_key_tensor_product;
 mod glwe_secret_key_to_lwe_secret_key_transmutation;
 mod lwe_bootstrap_key_conversion;
 mod lwe_bootstrap_key_creation;
