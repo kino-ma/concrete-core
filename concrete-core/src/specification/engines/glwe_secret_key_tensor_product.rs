@@ -45,8 +45,8 @@ where
 {
     fn create_tensor_product_glwe_secret_key(
         &mut self,
-        input1: InputKey1,
-        input2: InputKey2,
+        input1: &InputKey1,
+        input2: &InputKey2,
     ) -> Result<OutputKey, TensorProductGlweSecretKeyCreationError<Self::EngineError>>;
 
     /// Unsafely performs a tensor product of two GLWE secret keys.
@@ -58,7 +58,7 @@ where
 
     unsafe fn create_tensor_product_glwe_secret_key_unchecked(
         &mut self,
-        input1: InputKey1,
-        input2: InputKey2,
+        input1: &InputKey1,
+        input2: &InputKey2,
     ) -> OutputKey;
 }
