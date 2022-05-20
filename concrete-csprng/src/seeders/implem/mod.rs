@@ -7,3 +7,16 @@ pub use rdseed::RdseedSeeder;
 mod unix;
 #[cfg(feature = "seeder_unix")]
 pub use unix::UnixSeeder;
+
+#[cfg(all(
+    feature = "seeder_js",
+    target_arch = "wasm32",
+    not(target_os = "emscripten")
+))]
+mod js;
+#[cfg(all(
+    feature = "seeder_js",
+    target_arch = "wasm32",
+    not(target_os = "emscripten")
+))]
+pub use js::JsSeeder;
