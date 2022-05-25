@@ -7,7 +7,11 @@ use crate::seeders::{Seed, Seeder};
 pub struct JsSeeder;
 
 impl Seeder for JsSeeder {
+    #[allow(unreachable_code)]
     fn seed(&mut self) -> Seed {
+        #[cfg(not(all(target_arch = "wasm32", not(target_os = "emscripten"))))]
+        unimplemented!("not supported architecture or target");
+
         assert_eq!(mem::size_of::<usize>(), 4);
 
         // panic!("entered to seed");

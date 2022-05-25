@@ -8,15 +8,12 @@ mod unix;
 #[cfg(feature = "seeder_unix")]
 pub use unix::UnixSeeder;
 
-#[cfg(all(
-    feature = "seeder_js",
-    target_arch = "wasm32",
-    not(target_os = "emscripten")
-))]
+#[cfg(feature = "seeder_js")]
 mod js;
-#[cfg(all(
-    feature = "seeder_js",
-    target_arch = "wasm32",
-    not(target_os = "emscripten")
-))]
+#[cfg(feature = "seeder_js")]
 pub use js::JsSeeder;
+
+#[cfg(feature = "seeder_external_lib")]
+mod external;
+#[cfg(feature = "seeder_external_lib")]
+pub use external::ExternalLibSeeder;
