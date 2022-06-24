@@ -21,9 +21,9 @@ itertools = "0.10"
 serde_test = "1.0.125"
 
 [dependencies]
-concrete-fftw = {version="=0.1.2", features=["serialize"]}
+concrete-fftw = { path = "../../concrete-fftw/concrete-fftw", features=["serialize"] }
 concrete-commons = "=0.1.1"
-concrete-csprng= "=0.1.7"
+concrete-csprng = { path = "../concrete-csprng"}
 serde = { version = "1.0", features = ["derive"] }
 lazy_static = "1.4.0"
 bincode = "1.3"
@@ -36,6 +36,7 @@ bench = false
 
 [features]
 slow-csprng = ["concrete-csprng/slow"]
+external-seed = ["concrete-csprng/seeder_external_lib"]
 multithread = ["rayon", "concrete-csprng/multithread"]
 
 [[bench]]

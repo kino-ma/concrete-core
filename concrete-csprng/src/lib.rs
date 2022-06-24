@@ -41,6 +41,8 @@ impl RandomGenerator {
         if cfg!(feature = "slow") {
             return RandomGenerator::new_software(seed);
         }
+
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         RandomGenerator::new_hardware(seed).unwrap_or_else(|| RandomGenerator::new_software(seed))
     }
 
