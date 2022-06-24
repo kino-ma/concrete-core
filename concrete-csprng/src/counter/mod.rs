@@ -1,4 +1,8 @@
-use crate::{aesni, software};
+#[cfg(feature = "hardware")]
+use crate::aesni;
+
+use crate::software;
+
 #[cfg(feature = "multithread")]
 use rayon::{iter::IndexedParallelIterator, prelude::*};
 use std::cmp::Ordering;
@@ -217,6 +221,7 @@ impl Default for State {
 pub type SoftAesCtrGenerator = AesCtrGenerator<software::Generator>;
 
 /// A generator that uses the hardware implementation.
+#[cfg(feature = "hardware")]
 pub type HardAesCtrGenerator = AesCtrGenerator<aesni::Generator>;
 
 /// A csprng which operates in batch mode.

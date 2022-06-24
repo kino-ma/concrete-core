@@ -10,10 +10,14 @@
 use rayon::prelude::*;
 use std::fmt::{Debug, Display, Formatter, Result};
 
+#[cfg(feature = "hardware")]
 mod aesni;
+#[cfg(feature = "hardware")]
+use crate::counter::HardAesCtrGenerator;
+
 mod counter;
 mod software;
-use crate::counter::{AesKey, BytesPerChild, ChildCount, HardAesCtrGenerator, SoftAesCtrGenerator};
+use crate::counter::{AesKey, BytesPerChild, ChildCount, SoftAesCtrGenerator};
 pub use software::set_soft_rdseed_secret;
 
 /// The pseudorandom number generator.
@@ -26,7 +30,10 @@ pub enum RandomGenerator {
     #[doc(hidden)]
     Software(SoftAesCtrGenerator),
     #[doc(hidden)]
+    #[cfg(feature = "hardware")]
     Hardware(HardAesCtrGenerator),
+    #[cfg(not(feature = "hardware"))]
+    Hardware(()),
 }
 
 impl RandomGenerator {
@@ -38,12 +45,20 @@ impl RandomGenerator {
     /// If using the `slow` feature, this function will return the non-accelerated variant, even
     /// though the right instructions are available.
     pub fn new(seed: Option<u128>) -> RandomGenerator {
-        if cfg!(feature = "slow") {
-            return RandomGenerator::new_software(seed);
-        }
+        #[cfg(feature = "slow")]
+        return Self::new_software(seed);
 
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-        RandomGenerator::new_hardware(seed).unwrap_or_else(|| RandomGenerator::new_software(seed))
+        if is_x86_feature_detected!("aes")
+            && is_x86_feature_detected!("rdseed")
+            && is_x86_feature_detected!("sse2")
+        {
+            if let Some(rg) = Self::new_hardware(seed) {
+                return rg;
+            }
+        }
+
+        return Self::new_software(seed);
     }
 
     /// Builds a new software random generator, optionally seeding it with a given value.
@@ -52,6 +67,7 @@ impl RandomGenerator {
     }
 
     /// Tries to build a new hardware random generator, optionally seeding it with a given value.
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     pub fn new_hardware(seed: Option<u128>) -> Option<RandomGenerator> {
         if !is_x86_feature_detected!("aes")
             || !is_x86_feature_detected!("rdseed")
@@ -65,7 +81,6 @@ impl RandomGenerator {
             None,
         )))
     }
-
     /// Yields the next byte from the generator.
     pub fn generate_next(&mut self) -> u8 {
         match self {
