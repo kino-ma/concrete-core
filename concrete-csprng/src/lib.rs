@@ -112,3 +112,5 @@
 //! in the ISO/IEC 18033-4 document.
 pub mod generators;
 pub mod seeders;
+
+pub use generators::RandomGenerator;
