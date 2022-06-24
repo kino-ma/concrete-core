@@ -6,6 +6,8 @@
 //! The implementation is based on the AES blockcipher used in counter (CTR) mode, as presented
 //! in the ISO/IEC 18033-4 document.
 
+TODO: may be trait implementation broken. I don't know the way to fix, so just FIGHT
+
 #[cfg(feature = "multithread")]
 use rayon::prelude::*;
 use std::fmt::{Debug, Display, Formatter, Result};
@@ -32,8 +34,6 @@ pub enum RandomGenerator {
     #[doc(hidden)]
     #[cfg(feature = "hardware")]
     Hardware(HardAesCtrGenerator),
-    #[cfg(not(feature = "hardware"))]
-    Hardware(()),
 }
 
 impl RandomGenerator {
@@ -48,7 +48,7 @@ impl RandomGenerator {
         #[cfg(feature = "slow")]
         return Self::new_software(seed);
 
-        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        #[cfg(all(feature = "hardware", any(target_arch = "x86", target_arch = "x86_64")))]
         if is_x86_feature_detected!("aes")
             && is_x86_feature_detected!("rdseed")
             && is_x86_feature_detected!("sse2")
@@ -67,7 +67,7 @@ impl RandomGenerator {
     }
 
     /// Tries to build a new hardware random generator, optionally seeding it with a given value.
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    #[cfg(all(feature = "hardware", any(target_arch = "x86", target_arch = "x86_64")))]
     pub fn new_hardware(seed: Option<u128>) -> Option<RandomGenerator> {
         if !is_x86_feature_detected!("aes")
             || !is_x86_feature_detected!("rdseed")
@@ -84,6 +84,7 @@ impl RandomGenerator {
     /// Yields the next byte from the generator.
     pub fn generate_next(&mut self) -> u8 {
         match self {
+            #[cfg(feature = "hardware")]
             Self::Hardware(ref mut rand) => rand.generate_next(),
             Self::Software(ref mut rand) => rand.generate_next(),
         }
@@ -92,6 +93,7 @@ impl RandomGenerator {
     /// Returns whether the generator is bounded.
     pub fn is_bounded(&self) -> bool {
         match self {
+            #[cfg(feature = "hardware")]
             Self::Hardware(rand) => rand.is_bounded(),
             Self::Software(rand) => rand.is_bounded(),
         }
@@ -100,6 +102,7 @@ impl RandomGenerator {
     /// Returns the number of remaining bytes, if the generator is bounded.
     pub fn remaining_bytes(&self) -> Option<usize> {
         match self {
+            #[cfg(feature = "hardware")]
             Self::Hardware(rand) => rand.remaining_bytes(),
             Self::Software(rand) => rand.remaining_bytes(),
         }
@@ -115,9 +118,14 @@ impl RandomGenerator {
         n_child: usize,
         child_bytes: usize,
     ) -> Option<impl Iterator<Item = RandomGenerator>> {
+        #[cfg(feature = "hardware")]
+        type HardGen = HardAesCtrGenerator;
+        #[cfg(not(feature = "hardware"))]
+        type HardGen = SoftAesCtrGenerator;
+
         enum GeneratorChildIter<HardIter, SoftIter>
         where
-            HardIter: Iterator<Item = HardAesCtrGenerator>,
+            HardIter: Iterator<Item = HardGen>,
             SoftIter: Iterator<Item = SoftAesCtrGenerator>,
         {
             Hardware(HardIter),
@@ -126,29 +134,39 @@ impl RandomGenerator {
 
         impl<HardIter, SoftIter> Iterator for GeneratorChildIter<HardIter, SoftIter>
         where
-            HardIter: Iterator<Item = HardAesCtrGenerator>,
+            HardIter: Iterator<Item = HardGen>,
             SoftIter: Iterator<Item = SoftAesCtrGenerator>,
         {
             type Item = RandomGenerator;
 
             fn next(&mut self) -> Option<Self::Item> {
                 match self {
+                    #[cfg(feature = "hardware")]
                     GeneratorChildIter::Hardware(ref mut iter) => {
                         iter.next().map(RandomGenerator::Hardware)
                     }
                     GeneratorChildIter::Software(ref mut iter) => {
                         iter.next().map(RandomGenerator::Software)
                     }
+                    _ => {
+                        unreachable!()
+                    }
                 }
             }
         }
         match self {
+            #[cfg(feature = "hardware")]
             Self::Hardware(ref mut rand) => rand
                 .try_fork(ChildCount(n_child), BytesPerChild(child_bytes))
                 .map(GeneratorChildIter::Hardware),
+            #[cfg(feature = "hardware")]
             Self::Software(ref mut rand) => rand
                 .try_fork(ChildCount(n_child), BytesPerChild(child_bytes))
                 .map(GeneratorChildIter::Software),
+            #[cfg(not(feature = "hardware"))]
+            Self::Software(ref mut rand) => rand
+                .try_fork(ChildCount(n_child), BytesPerChild(child_bytes))
+                .map(GeneratorChildIter::<SoftAesCtrGenerator, _>::Software),
         }
     }
 
@@ -167,10 +185,15 @@ impl RandomGenerator {
         n_child: usize,
         child_bytes: usize,
     ) -> Option<impl IndexedParallelIterator<Item = RandomGenerator>> {
+        #[cfg(feature = "hardware")]
+        type HardGen = HardAesCtrGenerator;
+        #[cfg(not(feature = "hardware"))]
+        type HardGen = SoftAesCtrGenerator;
+
         use rayon::iter::plumbing::{Consumer, ProducerCallback, UnindexedConsumer};
         enum GeneratorChildIter<HardIter, SoftIter>
         where
-            HardIter: IndexedParallelIterator<Item = HardAesCtrGenerator> + Send + Sync,
+            HardIter: IndexedParallelIterator<Item = HardGen> + Send + Sync,
             SoftIter: IndexedParallelIterator<Item = SoftAesCtrGenerator> + Send + Sync,
         {
             Hardware(HardIter),
@@ -178,7 +201,7 @@ impl RandomGenerator {
         }
         impl<HardIter, SoftIter> ParallelIterator for GeneratorChildIter<HardIter, SoftIter>
         where
-            HardIter: IndexedParallelIterator<Item = HardAesCtrGenerator> + Send + Sync,
+            HardIter: IndexedParallelIterator<Item = HardGen> + Send + Sync,
             SoftIter: IndexedParallelIterator<Item = SoftAesCtrGenerator> + Send + Sync,
         {
             type Item = RandomGenerator;
@@ -187,6 +210,7 @@ impl RandomGenerator {
                 C: UnindexedConsumer<Self::Item>,
             {
                 match self {
+                    #[cfg(feature = "hardware")]
                     Self::Hardware(iter) => iter
                         .map(RandomGenerator::Hardware)
                         .drive_unindexed(consumer),
@@ -198,7 +222,7 @@ impl RandomGenerator {
         }
         impl<HardIter, SoftIter> IndexedParallelIterator for GeneratorChildIter<HardIter, SoftIter>
         where
-            HardIter: IndexedParallelIterator<Item = HardAesCtrGenerator> + Send + Sync,
+            HardIter: IndexedParallelIterator<Item = HardGen> + Send + Sync,
             SoftIter: IndexedParallelIterator<Item = SoftAesCtrGenerator> + Send + Sync,
         {
             fn len(&self) -> usize {
@@ -212,8 +236,9 @@ impl RandomGenerator {
                 consumer: C,
             ) -> <C as Consumer<Self::Item>>::Result {
                 match self {
-                    Self::Software(iter) => iter.map(RandomGenerator::Software).drive(consumer),
+                    #[cfg(feature = "hardware")]
                     Self::Hardware(iter) => iter.map(RandomGenerator::Hardware).drive(consumer),
+                    Self::Software(iter) => iter.map(RandomGenerator::Software).drive(consumer),
                 }
             }
             fn with_producer<CB: ProducerCallback<Self::Item>>(
@@ -221,23 +246,25 @@ impl RandomGenerator {
                 callback: CB,
             ) -> <CB as ProducerCallback<Self::Item>>::Output {
                 match self {
-                    Self::Software(iter) => {
-                        iter.map(RandomGenerator::Software).with_producer(callback)
-                    }
+                    #[cfg(feature = "hardware")]
                     Self::Hardware(iter) => {
                         iter.map(RandomGenerator::Hardware).with_producer(callback)
+                    }
+                    Self::Software(iter) => {
+                        iter.map(RandomGenerator::Software).with_producer(callback)
                     }
                 }
             }
         }
 
         match self {
+            #[cfg(feature = "hardware")]
             Self::Hardware(ref mut rand) => rand
                 .par_try_fork(ChildCount(n_child), BytesPerChild(child_bytes))
                 .map(GeneratorChildIter::Hardware),
             Self::Software(ref mut rand) => rand
                 .par_try_fork(ChildCount(n_child), BytesPerChild(child_bytes))
-                .map(GeneratorChildIter::Software),
+                .map(GeneratorChildIter::<SoftAesCtrGenerator, _>::Software),
         }
     }
 }
